@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import dayjs from "dayjs";
-import { Builder, Browser, By, Key, until, WebDriver } from "selenium-webdriver";
+import { Builder, Browser, By, Key, WebDriver } from "selenium-webdriver";
 import { sleep } from "./utils";
 import { Direction, nextMoveDirection } from "./play";
 
@@ -42,14 +42,14 @@ async function getTileGrids(driver: WebDriver) {
 
   console.log("Current tile grids:");
   for (let i = 0; i < 4; i++) {
-    console.log(`${ans[i][0]} ${ans[i][1]} ${ans[i][2]} ${ans[i][3]}`);
+    console.log(`\t${ans[i][0]}\t${ans[i][1]}\t${ans[i][2]}\t${ans[i][3]}`);
   }
   console.log("");
 
   return ans;
 }
 
-async function sendMoveInstructions(driver: WebDriver, direction: Direction) {
+async function sendMoveInstruction(driver: WebDriver, direction: Direction) {
   switch (direction) {
     case Direction.Up:
       await driver.actions().sendKeys(Key.UP).perform();
@@ -67,7 +67,7 @@ async function sendMoveInstructions(driver: WebDriver, direction: Direction) {
       break;
   }
 
-  await sleep(300);
+  await sleep(100);
 }
 
 async function saveScreenshot(driver: WebDriver) {
@@ -76,33 +76,44 @@ async function saveScreenshot(driver: WebDriver) {
   fs.writeFileSync(path.join(process.cwd(), fileName), picStr, "base64");
 }
 
-async function main() {
+async function sendRetryInstruction(driver: WebDriver) {
+  const retryButton = await driver.findElement(By.className("retry-button"));
+  await retryButton.click();
+}
+
+async function main(n: number) {
   let driver = await new Builder().forBrowser(Browser.CHROME).build();
   try {
     await driver.get("https://2048game.com/");
     await sleep(5000);
 
-    while (true) {
-      const tileGrids = await getTileGrids(driver);
+    let winCnt = 0;
+    for (let i = 0; i < n; i++) {
+      while (true) {
+        const tileGrids = await getTileGrids(driver);
 
-      if (await isGameOver(driver)) {
-        console.log("Game over!");
-        break;
+        if (await isGameOver(driver)) {
+          console.log("Game over!");
+          break;
+        }
+
+        if (await isGameWon(driver)) {
+          console.log("You win!");
+          winCnt++;
+          break;
+        }
+
+        await sendMoveInstruction(driver, nextMoveDirection(tileGrids));
       }
 
-      if (await isGameWon(driver)) {
-        console.log("You win!");
-        break;
-      }
-
-      await sendMoveInstructions(driver, nextMoveDirection(tileGrids));
+      await saveScreenshot(driver);
+      await sendRetryInstruction(driver);
     }
 
-    await saveScreenshot(driver);
+    console.log(`Win/Total play times: ${winCnt}/${n}`);
   } finally {
-    await sleep(5000);
     await driver.quit();
   }
 }
 
-main();
+main(1);
