@@ -1,0 +1,17 @@
+{
+  "name": "2048game",
+  "packageManager": "yarn@4.5.1",
+  "devDependencies": {
+    "@types/selenium-webdriver": "^4",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.13",
+    "selenium-webdriver": "^4.26.0"
+  },
+  "scripts": {
+    "build": "yarn tsc",
+    "launch": "yarn node dist",
+    "start": "yarn build && yarn launch"
+  }
+}
