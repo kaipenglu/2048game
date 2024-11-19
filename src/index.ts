@@ -41,12 +41,6 @@ async function getTileGrids(driver: WebDriver) {
     ans[row][col] = val;
   }
 
-  console.log("Current tile grids:");
-  for (let i = 0; i < 4; i++) {
-    console.log(`\t${ans[i][0]}\t${ans[i][1]}\t${ans[i][2]}\t${ans[i][3]}`);
-  }
-  console.log("");
-
   return ans;
 }
 
@@ -135,4 +129,4 @@ async function main(n: number) {
   }
 }
 
-main(1);
+main(10);
