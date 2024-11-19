@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import dayjs from "dayjs";
 import { Builder, Browser, By, Key, WebDriver } from "selenium-webdriver";
+import { Options } from "selenium-webdriver/chrome";
 import { sleep } from "./utils";
 import { Direction, nextMoveDirection } from "./play";
 
@@ -79,10 +80,25 @@ async function saveScreenshot(driver: WebDriver) {
 async function sendRetryInstruction(driver: WebDriver) {
   const retryButton = await driver.findElement(By.className("retry-button"));
   await retryButton.click();
+  await sleep(100);
+}
+
+async function sendKeepPlayingInstruction(driver: WebDriver) {
+  const keepPlayingButton = await driver.findElement(By.className("keep-playing-button"));
+  await keepPlayingButton.click();
+  await sleep(100);
+}
+
+async function getBestScore(driver: WebDriver) {
+  const bestContainer = await driver.findElement(By.className("best-container"));
+  const txt = await bestContainer.getText();
+  return parseInt(txt);
 }
 
 async function main(n: number) {
-  let driver = await new Builder().forBrowser(Browser.CHROME).build();
+  const options = new Options();
+  options.addArguments("--window-size=1024,768");
+  const driver = await new Builder().forBrowser(Browser.CHROME).setChromeOptions(options).build();
   try {
     await driver.get("https://2048game.com/");
     await sleep(5000);
@@ -100,7 +116,8 @@ async function main(n: number) {
         if (await isGameWon(driver)) {
           console.log("You win!");
           winCnt++;
-          break;
+          await sendKeepPlayingInstruction(driver);
+          // break;
         }
 
         await sendMoveInstruction(driver, nextMoveDirection(tileGrids));
@@ -111,6 +128,8 @@ async function main(n: number) {
     }
 
     console.log(`Win/Total play times: ${winCnt}/${n}`);
+    const bestScore = await getBestScore(driver);
+    console.log(`Best score: ${bestScore}`);
   } finally {
     await driver.quit();
   }
