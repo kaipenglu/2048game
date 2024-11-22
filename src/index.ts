@@ -45,24 +45,27 @@ async function getTileGrids(driver: WebDriver) {
 }
 
 async function sendMoveInstruction(driver: WebDriver, direction: Direction) {
-  switch (direction) {
-    case Direction.Up:
-      await driver.actions().sendKeys(Key.UP).perform();
-      break;
-    case Direction.Down:
-      await driver.actions().sendKeys(Key.DOWN).perform();
-      break;
-    case Direction.Left:
-      await driver.actions().sendKeys(Key.LEFT).perform();
-      break;
-    case Direction.Right:
-      await driver.actions().sendKeys(Key.RIGHT).perform();
-      break;
-    default:
-      break;
-  }
+  const keyMap = new Map([
+    [Direction.Up, Key.UP],
+    [Direction.Down, Key.DOWN],
+    [Direction.Left, Key.LEFT],
+    [Direction.Right, Key.RIGHT],
+  ]);
 
-  await sleep(100);
+  const key = keyMap.get(direction);
+  if (key) {
+    for (let i = 0; i < 10; i++) {
+      let isSucceed = true;
+      try {
+        await driver.actions().sendKeys(key).perform();
+      } catch (e: any) {
+        isSucceed = false;
+        console.error(`sendMoveInstruction error: ${e.message}`);
+      }
+      if (isSucceed) break;
+    }
+    await sleep(100);
+  }
 }
 
 async function saveScreenshot(driver: WebDriver) {
@@ -71,16 +74,25 @@ async function saveScreenshot(driver: WebDriver) {
   fs.writeFileSync(path.join(process.cwd(), fileName), picStr, "base64");
 }
 
-async function sendRetryInstruction(driver: WebDriver) {
-  const retryButton = await driver.findElement(By.className("retry-button"));
-  await retryButton.click();
-  await sleep(100);
+enum ButtonType {
+  RetryButton = "retry-button",
+  KeepPlayingButton = "keep-playing-button",
 }
 
-async function sendKeepPlayingInstruction(driver: WebDriver) {
-  const keepPlayingButton = await driver.findElement(By.className("keep-playing-button"));
-  await keepPlayingButton.click();
-  await sleep(100);
+async function clickButton(driver: WebDriver, buttonType: ButtonType) {
+  for (let i = 0; i < 10; i++) {
+    let isSucceed = true;
+    try {
+      const button = await driver.findElement(By.className(buttonType));
+      await button.click();
+    } catch (e: any) {
+      isSucceed = false;
+      console.error(`clickButton error: ${e.message}`);
+    }
+    if (isSucceed) break;
+
+    await sleep(100);
+  }
 }
 
 async function getBestScore(driver: WebDriver) {
@@ -91,7 +103,7 @@ async function getBestScore(driver: WebDriver) {
 
 async function main(n: number) {
   const options = new Options();
-  options.addArguments("--window-size=1024,768");
+  options.addArguments("--headless=new");
   const driver = await new Builder().forBrowser(Browser.CHROME).setChromeOptions(options).build();
   try {
     await driver.get("https://2048game.com/");
@@ -110,7 +122,7 @@ async function main(n: number) {
         if (await isGameWon(driver)) {
           console.log("You win!");
           winCnt++;
-          await sendKeepPlayingInstruction(driver);
+          await clickButton(driver, ButtonType.KeepPlayingButton);
           // break;
         }
 
@@ -118,7 +130,7 @@ async function main(n: number) {
       }
 
       await saveScreenshot(driver);
-      await sendRetryInstruction(driver);
+      await clickButton(driver, ButtonType.RetryButton);
     }
 
     console.log(`Win/Total play times: ${winCnt}/${n}`);
@@ -129,4 +141,4 @@ async function main(n: number) {
   }
 }
 
-main(10);
+main(100);
